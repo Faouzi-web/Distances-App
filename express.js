@@ -27,6 +27,12 @@ const pool = mysql.createPool({
   charset: 'utf8mb4'
 });
 
+const corsOptions = {
+  origin: 'https://distance.biozagora.com',  // allow only this origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],  // allowed HTTP methods
+  credentials: true,  // if you want to allow cookies or auth headers
+};
+
 // Initialize database table
 async function initializeDatabase() {
   try {
