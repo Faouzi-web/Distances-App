@@ -9,7 +9,6 @@ const PORT = 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('src')); // Serve static files (HTML, CSS, JS)
 
 // MySQL Database setup with connection pooling
 const pool = mysql.createPool({
@@ -269,126 +268,6 @@ app.post('/distances', async (req, res) => {
     console.error('Database error:', error.message);
     res.status(500).json({ error: 'Failed to save distance' });
   }
-});
-
-// Delete distance record (optional - for data management)
-app.delete('/distances/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ error: 'Valid ID is required' });
-    }
-
-    const query = `DELETE FROM distances WHERE id = ?;`;
-    const [result] = await pool.query(query, [parseInt(id)]);
-
-    if (result.affectedRows === 0) {
-      res.status(404).json({ error: 'Distance record not found' });
-    } else {
-      res.json({ message: 'Distance record deleted successfully' });
-    }
-  } catch (error) {
-    console.error('Database error:', error.message);
-    res.status(500).json({ error: 'Failed to delete distance record' });
-  }
-});
-
-// Clear all distance records (optional - for data management)
-app.delete('/distances', async (req, res) => {
-  try {
-    const query = `DELETE FROM distances;`;
-    const [result] = await pool.query(query);
-
-    res.json({ 
-      message: 'All distance records cleared successfully',
-      deleted_count: result.affectedRows
-    });
-  } catch (error) {
-    console.error('Database error:', error.message);
-    res.status(500).json({ error: 'Failed to clear distance records' });
-  }
-});
-
-// Health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    // Test database connection
-    const connection = await pool.getConnection();
-    await connection.ping();
-    connection.release();
-    
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      database: 'connected'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      database: 'disconnected',
-      error: error.message
-    });
-  }
-});
-
-// Serve the main HTML files
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'index.html'));
-});
-
-app.get('/history', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'history.html'));
-});
-
-// Generate sample data for testing (development only)
-app.post('/generate-sample-data', async (req, res) => {
-  try {
-    const { count = 100 } = req.body;
-    
-    if (count > 1000) {
-      return res.status(400).json({ error: 'Maximum 1000 sample records allowed' });
-    }
-
-    const sampleData = [];
-    const now = new Date();
-    
-    for (let i = 0; i < count; i++) {
-      const distance = Math.floor(Math.random() * 350) + 10; // Random distance between 10-360 cm
-      const timestamp = new Date(now.getTime() - (i * 60000)); // Go back 1 minute for each record
-      sampleData.push([distance, timestamp]);
-    }
-
-    const query = `
-      INSERT INTO distances (distance, created_at) 
-      VALUES ?;
-    `;
-
-    const [result] = await pool.query(query, [sampleData]);
-    
-    res.json({ 
-      message: `Generated ${count} sample distance records`,
-      count: count,
-      insertedRows: result.affectedRows
-    });
-  } catch (error) {
-    console.error('Error generating sample data:', error.message);
-    res.status(500).json({ error: 'Failed to generate sample data' });
-  }
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
 });
 
 // Graceful shutdown
